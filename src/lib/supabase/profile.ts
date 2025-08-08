@@ -37,6 +37,9 @@ export const signUpProfile = async ({
   if (error) throw error;
   return data;
 };
+
+
+//db 조회 함수
 export const getAllPropfile = async ({
   startPage,
   endPage,
@@ -50,8 +53,11 @@ export const getAllPropfile = async ({
     .from('profile_with_gender')
     .select('nickname, mbti, description, insta_profile, user_id')
     .neq('gender', studentGender)
-    .range(startPage, endPage);
+    .range(startPage, endPage); //페이징 처리 startPage 행부터 endPage 행까지 가져오겠다는 것.
 
   if (error) throw error;
   return data as ProfileProps[];
 };
+
+
+//현재까지 몇명의 사용자를 파악하는.

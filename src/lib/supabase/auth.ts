@@ -52,7 +52,7 @@ export const getIsSignedUser = async (userId: string) => {
 export const checkNumGet = async ({ id }: { id: number }) => {
   const { data, error } = await supabase
     .from('users')
-    .select('check_num')
+    .select('check_num') //매칭 횟수 파악.
     .eq('id', id);
 
   if (error) {

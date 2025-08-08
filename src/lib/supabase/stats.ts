@@ -12,6 +12,7 @@ export const incrementMatchCount = async () => {
   }
 };
 
+//사용시 매우 주의할 것!
 export const resetMatchCount = async () => {
   const { error } = await supabase
     .from('stats')

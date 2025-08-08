@@ -1,14 +1,19 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY!;
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Supabase 환경 변수가 설정되지 않았습니다.");
-}
+// 1) 회원 여부 확인 (테이블 select → RPC로 변경)
+export const getIsSignedUser = async (userId: string) => {
+  const { data, error } = await supabase.rpc('get_is_signed_user', {
+    p_id: Number(userId),
+  });
+  if (error) throw error;
+  return Boolean(data);
+};
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-
+// 2) 기본 회원가입 (users insert → RPC로 변경)
 export const signUp = async ({
   id,
   name,
@@ -18,15 +23,17 @@ export const signUp = async ({
   name: string;
   gender: string;
 }) => {
-  const { data, error } = await supabase
-    .from("users")
-    .insert([{ id: id, name: name, gender: gender }])
-    .select();
-
+  const { error } = await supabase.rpc('sign_up_user', {
+    p_id: id,
+    p_name: name,
+    p_gender: gender,
+  });
   if (error) throw error;
-  return data;
+  // RPC는 성공 시 보통 data가 없어요. 필요하면 별도 select를 호출하세요.
 };
 
+// 3) 프로필 저장/수정 (profiles upsert → RPC로 변경)
+//   ⚠️ DB 테이블명이 'profiles' 인지 확인! (단수 'profile'이면 DB 함수도 거기에 맞게 만들었는지 체크)
 export const signUpProfile = async ({
   userId,
   nickname,
@@ -40,31 +47,36 @@ export const signUpProfile = async ({
   description: string;
   instaProfile: string;
 }) => {
-  const { data, error } = await supabase
-    .from("profile")
-    .insert([
-      {
-        user_id: userId,
-        nickname: nickname,
-        mbti: mbti,
-        description: description,
-        insta_profile: instaProfile,
-      },
-    ])
-    .select();
-
+  const { error } = await supabase.rpc('sign_up_profile', {
+    p_user_id: userId,
+    p_nickname: nickname,
+    p_mbti: mbti,
+    p_description: description,
+    p_insta: instaProfile,
+  });
   if (error) throw error;
-  return data;
 };
 
+// -------------------------------
+// 아래부터는 RLS 때문에 막히기 쉬운 애들입니다.
+// 간단히 쓰고 싶으면 “읽기 전용 정책”을 열거나,
+// 안전하게 가려면 RPC를 하나씩 만들어 쓰세요.
+// -------------------------------
+
+// A) 로그인: 지금은 users를 직접 select 하니 RLS에 막힐 수 있음.
+//    ✅ 추천: login_user RPC 만들어 호출
 export const login = async ({ id, name }: { id: number; name: string }) => {
-  const { data, error } = await supabase
-    .from("users")
-    .select("id, name, gender, check_num")
-    .eq("id", id)
-    .eq("name", name);
+  const { data, error } = await supabase.rpc('login_user', {
+    p_id: id,
+    p_name: name,
+  });
   if (error) throw error;
-  return data;
+  return data as {
+    id: number;
+    name: string;
+    gender: string;
+    check_num: number;
+  }[];
 };
 
 export interface ProfileProps {
@@ -75,6 +87,8 @@ export interface ProfileProps {
   user_id: number;
 }
 
+// B) 프로필 목록: view('profile_with_gender') select도 RLS에 막힐 수 있음.
+//    ✅ 추천: get_profiles_page RPC 만들어 호출
 export const getAllPropfile = async ({
   startPage,
   endPage,
@@ -84,25 +98,26 @@ export const getAllPropfile = async ({
   endPage: number;
   studentGender: string;
 }) => {
-  const { data, error } = await supabase
-    .from("profile_with_gender")
-    .select("nickname, mbti, description, insta_profile, user_id")
-    .neq("gender", studentGender)
-    .range(startPage, endPage);
-
+  const limit = endPage - startPage + 1;
+  const { data, error } = await supabase.rpc('get_profiles_page', {
+    p_gender: studentGender,
+    p_offset: startPage,
+    p_limit: limit,
+  });
   if (error) throw error;
   return data as ProfileProps[];
 };
 
+// C) check_num 읽기: users select라서 RLS에 막힐 수 있음.
+//    ✅ 추천: get_check_num RPC
 export const checkNumGet = async ({ id }: { id: number }) => {
-  const { data, error } = await supabase
-    .from("users")
-    .select("check_num")
-    .eq("id", id);
-  if (error || null) throw error;
-  return data[0].check_num;
+  const { data, error } = await supabase.rpc('get_check_num', { p_id: id });
+  if (error) throw error;
+  return (data as { check_num: number }).check_num;
 };
 
+// D) 매칭 생성 + 본인 check_num 증가: matching insert도 RLS 영향.
+//    ✅ 추천: create_match_and_increment RPC로 한 방에 처리
 export const matchingUpdate = async ({
   userId,
   targetId,
@@ -110,51 +125,19 @@ export const matchingUpdate = async ({
   userId: number;
   targetId: number;
 }) => {
-  const { data, error } = await supabase
-    .from("matching")
-    .insert([{ user_id: userId, target_user_id: targetId }])
-    .select();
-
+  const { data, error } = await supabase.rpc('create_match_and_increment', {
+    p_user_id: userId,
+    p_target_id: targetId,
+  });
   if (error) throw error;
-
-  const { data: userData, error: userError } = await supabase.rpc(
-    "increment_check_num",
-    { uid: userId }
-  );
-
-  if (userError) throw userError;
-
-  return { data, userData };
+  return data; // 필요 시 RPC에서 적절한 반환 형식으로 구성
 };
 
+// E) 내가 매칭한 프로필들: join/select 다수 → RPC로 묶기 추천
 export const getMatchesWithProfile = async (userId: number) => {
-  const { data: matches, error } = await supabase
-    .from("matching")
-    .select("target_user_id")
-    .eq("user_id", userId);
-
+  const { data, error } = await supabase.rpc('get_matches_with_profile', {
+    p_user_id: userId,
+  });
   if (error) throw error;
-
-  const profiles = await Promise.all(
-    matches.map(async (match: { target_user_id: number }) => {
-      const { data, error } = await supabase
-        .from("profile")
-        .select("*")
-        .eq("user_id", match.target_user_id)
-        .single();
-      if (error) throw error;
-      return data;
-    })
-  );
-
-  return profiles;
-};
-
-export const getIsSignedUser = async (userId: string) => {
-  const { data, error } = await supabase
-    .from("users")
-    .select("id")
-    .eq("id", userId);
-  if (error) throw error;
-  return data.length === 0 ? false : true;
+  return data as ProfileProps[];
 };

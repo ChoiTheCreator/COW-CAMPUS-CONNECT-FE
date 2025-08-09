@@ -1,121 +1,140 @@
-import { ChangeEvent, useState } from "react";
-import Input from "../components/input";
-import { useNavigate } from "react-router-dom";
-import { login } from "../api/api";
+// src/pages/Login.tsx
+import { ChangeEvent, KeyboardEvent, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Input from '../components/input';
+import { login } from '../api/api';
+import PageShell from './shell/pageshell';
 
 export default function Login() {
   const navigate = useNavigate();
-  const searchParams = new URLSearchParams(location.search);
-  const role = searchParams.get("role");
+  const role = new URLSearchParams(location.search).get('role');
+  const subtitle = useMemo(() => {
+    if (role === 'dashboard') return '상대 카드를 보려면 로그인하세요.';
+    if (role === 'myPage')
+      return '내가 선택한 지원자 목록을 보려면 로그인하세요.';
+    return '학번과 이름으로 로그인하세요.';
+  }, [role]);
 
-  const [form, setForm] = useState({
-    studentId: "",
-    name: "",
-  });
+  const [form, setForm] = useState({ studentId: '', name: '' });
+  const [errors, setErrors] = useState({ studentId: '', name: '', global: '' });
+  const [loading, setLoading] = useState(false);
 
-  const [errors, setErrors] = useState({
-    studentId: "",
-    name: "",
-  });
-
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((p) => ({ ...p, [name]: value }));
+    setErrors((p) => ({ ...p, [name]: '', global: '' }));
   };
 
-  const handleLoginButton = async () => {
-    setErrors({ studentId: "", name: "" });
-    let valid = true;
-
-    if (form.studentId === "") {
-      setErrors((prev) => ({
-        ...prev,
-        studentId: "학번을 입력하세요",
-      }));
-      valid = false;
-    } else if (!/^\d{8}$/.test(form.studentId)) {
-      setErrors((prev) => ({
-        ...prev,
-        studentId: "학번은 8자리 숫자여야 합니다.",
-      }));
-      valid = false;
+  const validate = () => {
+    const next = { studentId: '', name: '', global: '' };
+    let ok = true;
+    if (!/^\d{8}$/.test(form.studentId || '')) {
+      next.studentId = form.studentId
+        ? '학번은 8자리 숫자여야 합니다.'
+        : '학번을 입력하세요.';
+      ok = false;
     }
-    if (form.name === "") {
-      setErrors((prev) => ({
-        ...prev,
-        name: "이름을 입력하세요",
-      }));
-      valid = false;
+    if (!form.name) {
+      next.name = '이름을 입력하세요.';
+      ok = false;
     }
+    setErrors(next);
+    return ok;
+  };
 
-    if (!valid) return;
-
+  const submit = async () => {
+    if (!validate()) return;
+    setLoading(true);
     try {
       const data = await login({ id: Number(form.studentId), name: form.name });
-      const studentId = form.studentId;
-      const studentGender = data[0].gender;
-
-      const encryptedQuery = btoa(studentId);
-      const genderQuery = btoa(studentGender);
+      const sid = btoa(form.studentId);
+      const g = btoa(data?.[0]?.gender ?? '');
       const url =
-        role === "dashboard"
-          ? `/dashboard?studentId=${encryptedQuery}&studentGender=${genderQuery}`
-          : `/myPage?studentId=${encryptedQuery}`;
+        role === 'dashboard'
+          ? `/dashboard?studentId=${sid}&studentGender=${g}`
+          : `/myPage?studentId=${sid}`;
       navigate(url);
     } catch {
-      setErrors((prev) => ({
-        ...prev,
-        studentId: "로그인에 실패하였습니다.",
+      setErrors((p) => ({
+        ...p,
+        global: '로그인에 실패했습니다. 다시 시도하세요.',
       }));
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter') submit();
   };
 
   return (
-    <div className="h-dvh w-dvw flex flex-col items-start px-4 py-6 font-sans">
-      <div className="font-semibold text-xl">로그인</div>
-      <div className="text-sm py-5">
-        학번과 이름을 통해 로그인해주세요
-        <br />
-        로그인 후 상대 카드를 확인할 수 있습니다.
-      </div>
-      <section className="flex flex-col w-full gap-8">
-        <Input
-          id="studentId"
-          name="studentId"
-          label="학번"
-          type="text"
-          value={form.studentId}
-          onChange={handleInputChange}
-          error={errors.studentId}
-          placeholder="학번 8자리를 입력해주세요"
-        />
-        <Input
-          id="name"
-          name="name"
-          label="이름"
-          type="text"
-          value={form.name}
-          onChange={handleInputChange}
-          error={errors.name}
-          placeholder="학우님의 이름을 입력해주세요"
-        />
-      </section>
-      <div className="flex flex-col pt-10 w-full">
-        <section className="flex flex-row w-full justify-between">
+    <PageShell>
+      <div onKeyDown={onKeyDown}>
+        <header className="mb-6">
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
+            로그인
+          </h1>
+          <p className="mt-2 text-slate-600">{subtitle}</p>
+        </header>
+
+        {errors.global && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm">
+            {errors.global}
+          </div>
+        )}
+
+        <section className="space-y-6">
+          <Input
+            id="studentId"
+            name="studentId"
+            label="학번"
+            type="text"
+            value={form.studentId}
+            onChange={onChange}
+            error={errors.studentId}
+            placeholder="학번 8자리를 입력하세요"
+          />
+          <Input
+            id="name"
+            name="name"
+            label="이름"
+            type="text"
+            value={form.name}
+            onChange={onChange}
+            error={errors.name}
+            placeholder="이름을 입력하세요"
+          />
+        </section>
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
-            className="py-2 px-4 border border-[#E2E8F0] rounded-md text-sm"
-            onClick={() => navigate("/")}
+            className="h-12 w-full rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-medium
+               shadow-[0_6px_16px_rgba(0,0,0,0.06)] transition-all
+               hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(0,0,0,0.08)]
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900"
+            onClick={() => navigate('/')}
+            disabled={loading}
           >
             뒤로가기
           </button>
+
           <button
-            className="py-2 px-4 bg-[#0F172A] border text-white rounded-md text-sm"
-            onClick={handleLoginButton}
+            className="h-12 w-full rounded-xl bg-slate-900 text-white text-sm font-semibold
+               shadow-[0_10px_24px_rgba(15,23,42,0.15)] transition-all
+               hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(15,23,42,0.18)]
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900
+               disabled:opacity-60 disabled:cursor-not-allowed"
+            onClick={submit}
+            disabled={loading}
           >
-            다음으로
+            {loading ? '처리 중...' : '다음으로'}
           </button>
-        </section>
+        </div>
+
+        <p className="mt-6 text-center text-xs text-slate-500">
+          입력 정보는 행사 운영 목적 이외로 사용되지 않습니다.
+        </p>
       </div>
-    </div>
+    </PageShell>
   );
 }

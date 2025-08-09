@@ -9,16 +9,15 @@ export const signUp = async ({
   name: string;
   gender: string;
 }) => {
-  const { data, error } = await supabase
-    .from('users') //supabase에서 설정한 table named "users"
-    .insert([{ id, name, gender }]) //supabase의 table에 행을 삽입하는 메서드. (다건 삽입이 디폴트 . 배열 형태로 넘겨줘야한다.)
-    .select(); // att를 가져오는 문, 만일 비었다면 select *
+  const { error } = await supabase.rpc('sign_up_user', {
+    p_id: id,
+    p_name: name,
+    p_gender: gender,
+  });
   if (error) {
-    console.log('supabase signUp 에러 발생', error);
+    console.log('supabase signup 에러 발생', error);
     throw error;
   }
-
-  return data;
 };
 
 export const login = async ({ id, name }: { id: number; name: string }) => {
@@ -36,28 +35,17 @@ export const login = async ({ id, name }: { id: number; name: string }) => {
 };
 
 export const getIsSignedUser = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('users')
-    .select('id')
-    .eq('id', userId); //sql where이랑 비슷 (colname, value)
-  //sql로 치면, select id from users where id = userId
-
+  const { data, error } = await supabase.rpc('get_is_signed_user', {
+    p_id: userId,
+  });
   if (error) {
-    console.log('supabase getSignedUser 에러 발생', error);
-    throw error;
+    console.log('supabase error ! getIsSignedUser api');
   }
-  return data.length !== 0;
+  return data;
 };
 
 export const checkNumGet = async ({ id }: { id: number }) => {
-  const { data, error } = await supabase
-    .from('users')
-    .select('check_num') //매칭 횟수 파악.
-    .eq('id', id);
-
-  if (error) {
-    console.log('supabase getSignedUser 에러 발생', error);
-    throw error;
-  }
-  return data[0].check_num;
+  const { data, error } = await supabase.rpc('get_check_num', { p_id: id });
+  if (error) throw error;
+  return (data as { check_num: number }).check_num;
 };

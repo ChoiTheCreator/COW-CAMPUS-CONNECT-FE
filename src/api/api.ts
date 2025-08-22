@@ -74,7 +74,7 @@ export interface ProfileProps {
   user_id: number;
 }
 
-export const getAllPropfile = async ({
+export const getAllProfile = async ({
   startPage,
   endPage,
   studentGender,

@@ -1,13 +1,15 @@
 // src/pages/Login.tsx
 import { ChangeEvent, KeyboardEvent, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Input from '../components/input';
 import { login } from '../api/api';
 import PageShell from './shell/pageshell';
 
 export default function Login() {
   const navigate = useNavigate();
-  const role = new URLSearchParams(location.search).get('role');
+  // const role = new URLSearchParams(location.search).get('role');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const role = searchParams.get('role');
   const subtitle = useMemo(() => {
     if (role === 'dashboard') return '상대 카드를 보려면 로그인하세요.';
     if (role === 'myPage')

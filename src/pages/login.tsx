@@ -1,4 +1,3 @@
-// src/pages/Login.tsx
 import { ChangeEvent, KeyboardEvent, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Input from '../components/input';
@@ -7,9 +6,9 @@ import PageShell from './shell/pageshell';
 
 export default function Login() {
   const navigate = useNavigate();
-  // const role = new URLSearchParams(location.search).get('role');
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams(); // role 읽기용
   const role = searchParams.get('role');
+
   const subtitle = useMemo(() => {
     if (role === 'dashboard') return '상대 카드를 보려면 로그인하세요.';
     if (role === 'myPage')
@@ -30,13 +29,14 @@ export default function Login() {
   const validate = () => {
     const next = { studentId: '', name: '', global: '' };
     let ok = true;
-    if (!/^\d{8}$/.test(form.studentId || '')) {
+
+    if (!/^\d{8}$/.test(form.studentId.trim())) {
       next.studentId = form.studentId
         ? '학번은 8자리 숫자여야 합니다.'
         : '학번을 입력하세요.';
       ok = false;
     }
-    if (!form.name) {
+    if (!form.name.trim()) {
       next.name = '이름을 입력하세요.';
       ok = false;
     }
@@ -45,18 +45,27 @@ export default function Login() {
   };
 
   const submit = async () => {
+    if (loading) return;
     if (!validate()) return;
+
     setLoading(true);
     try {
-      const data = await login({ id: Number(form.studentId), name: form.name });
-      const sid = btoa(form.studentId);
-      const g = btoa(data?.[0]?.gender ?? '');
+      // ⬇️ 스프링 API는 단일 User 객체를 반환한다고 가정
+      const user = await login({
+        id: Number(form.studentId.trim()),
+        name: form.name.trim(),
+      });
+
+      const sid = btoa(form.studentId.trim());
+      const g = btoa(user?.gender ?? '');
+
       const url =
         role === 'dashboard'
           ? `/dashboard?studentId=${sid}&studentGender=${g}`
           : `/myPage?studentId=${sid}`;
+
       navigate(url);
-    } catch {
+    } catch (e) {
       setErrors((p) => ({
         ...p,
         global: '로그인에 실패했습니다. 다시 시도하세요.',
@@ -108,6 +117,7 @@ export default function Login() {
             placeholder="이름을 입력하세요"
           />
         </section>
+
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             className="h-12 w-full rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-medium

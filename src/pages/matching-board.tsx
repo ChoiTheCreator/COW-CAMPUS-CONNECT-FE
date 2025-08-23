@@ -1,5 +1,9 @@
 // src/pages/matching-board.tsx
-import { ChevronLeftIcon, InstagramLogoIcon } from '@radix-ui/react-icons';
+import {
+  ChevronLeftIcon,
+  InstagramLogoIcon,
+  Cross2Icon,
+} from '@radix-ui/react-icons';
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getAllProfile, matchingUpdate } from '../api/api';
@@ -11,11 +15,12 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogClose, // ✨ 닫기 버튼을 직접 배치해서 위치/여백 제어
 } from '../components/ui/dialog';
 import { throttle } from '../lib/utils';
 import { toast } from 'sonner';
 
-// 인스타 계정 추출(유저명만): 링크/공백/@ 포함해도 안전하게 처리
+/** 인스타 계정 추출(유저명만): 링크/공백/@ 포함해도 안전하게 처리 */
 const extractInsta = (raw?: string | null): string => {
   if (!raw) return '';
   const s = String(raw).trim();
@@ -29,8 +34,50 @@ const extractInsta = (raw?: string | null): string => {
   return u;
 };
 
-// 서버 응답이 camelCase 또는 snake_case 어느 쪽이든 들어와도
-// 프론트에서는 camelCase로 통일해서 사용하도록 노멀라이즈된 타입
+/** 인스타 공식 그라데이션 팔레트 (배지/버튼 공통) */
+const igGradient = 'bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#8134af]';
+
+/** 인스타 그라데이션 버튼 (모달 내부용) */
+const InstaButton: React.FC<{
+  username?: string | null;
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+}> = ({ username, onClick, disabled, className }) => {
+  const label = username ? `@${username}` : '인스타 열기';
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={[
+        // 크기/타이포
+        'inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-[14px] font-semibold text-white',
+        // 그라데이션 + 그림자
+        igGradient,
+        'shadow-[0_14px_30px_rgba(0,0,0,0.18)]',
+        // 상호작용
+        'transition-all hover:translate-y-[-2px] hover:shadow-[0_18px_36px_rgba(0,0,0,0.22)] active:translate-y-0',
+        // 접근성
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#dd2a7b]',
+        // 비활성
+        'disabled:opacity-60 disabled:cursor-not-allowed',
+        className || '',
+      ].join(' ')}
+      aria-label="인스타그램 프로필 열기"
+      title={label}
+    >
+      <span
+        className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-white/20 backdrop-blur-sm"
+        aria-hidden
+      >
+        <InstagramLogoIcon width={14} height={14} />
+      </span>
+      <span className="max-w-[180px] truncate">{label}</span>
+    </button>
+  );
+};
+
+/** 서버 응답이 camelCase/snake_case 어느 쪽이든 들어와도 프론트에서 camelCase로 통일 */
 export type ProfileNormalized = {
   userId: number;
   nickname: string;
@@ -111,8 +158,6 @@ export default function MatchingBoard() {
         studentGender: targetGender,
       });
 
-      console.log('📦 서버에서 가져온 프로필 데이터:', requestData);
-
       const checked = getCheckedProfiles();
       const normalized: ProfileWithCheckInsta[] = (requestData || []).map(
         (p: any) => {
@@ -164,10 +209,9 @@ export default function MatchingBoard() {
 
   const handleOpenInsta = (username?: string | null) => {
     const user = extractInsta(username);
-    console.log('🔗 인스타 계정 원본:', username, '→ 정규화:', user);
     if (!user) {
-      toast('인스타 아이디가 없습니다.', {
-        description: '프로필에 인스타 계정이 비어있습니다.',
+      toast('인스타 계정이 없어요', {
+        description: '프로필에 등록된 인스타그램 계정을 찾지 못했어요.',
       });
       return;
     }
@@ -176,15 +220,8 @@ export default function MatchingBoard() {
   };
 
   const handleClickInsta = async (p: ProfileWithCheckInsta) => {
-    console.log('🔍 선택된 프로필:', p);
     // 1) 바로 인스타 이동
     const user = extractInsta(p.instaProfile);
-    console.log(
-      '👤 클릭된 프로필의 인스타:',
-      p.instaProfile,
-      '→ 정규화:',
-      user
-    );
     handleOpenInsta(user);
 
     // 2) (선택) 열람 기록 남기기 – 실패해도 사용자 흐름 막지 않음
@@ -192,7 +229,6 @@ export default function MatchingBoard() {
       if (studentId && p.userId) {
         void matchingUpdate({ userId: studentId, targetId: p.userId });
       }
-      // 로컬 체크 마킹
       saveCheckedProfile(p.userId);
       setSelectedProfile((prev) =>
         prev ? { ...prev, checkInsta: true } : prev
@@ -242,30 +278,38 @@ export default function MatchingBoard() {
         <div className="divide-y">
           {data.map((value, idx) => {
             const isLast = idx === data.length - 1;
+            const ig = extractInsta(value.instaProfile);
             return (
               <Dialog key={value.userId}>
                 <DialogTrigger asChild>
                   <button
                     ref={isLast ? lastElementRef : null}
                     className="w-full text-left bg-white hover:bg-slate-50 active:bg-slate-100 transition cursor-pointer"
-                    onClick={() => {
-                      console.log('🟢 setSelectedProfile with:', {
-                        userId: value.userId,
-                        nickname: value.nickname,
-                        instaProfile: value.instaProfile,
-                      });
-                      setSelectedProfile(value);
-                    }}
+                    onClick={() => setSelectedProfile(value)}
                   >
                     <div className="flex flex-col gap-2 p-4">
                       <div className="flex items-center justify-between">
                         <div className="font-semibold text-[15px] text-slate-900">
                           {value.nickname}
                         </div>
-                        <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium text-blue-600 border-blue-200 bg-blue-50">
-                          {value.mbti?.toUpperCase()}
-                        </span>
+
+                        <div className="flex items-center gap-1">
+                          {/* MBTI */}
+                          <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium text-blue-600 border-blue-200 bg-blue-50">
+                            {value.mbti?.toUpperCase()}
+                          </span>
+                          {/* IG 배지 — 인스타 그라데이션 */}
+                          {ig ? (
+                            <span
+                              className={`ml-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-white/95 ${igGradient} shadow-sm`}
+                            >
+                              <InstagramLogoIcon width={12} height={12} />
+                              IG
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
+
                       <p className="text-[13px] text-slate-600 line-clamp-2">
                         {value.description}
                       </p>
@@ -273,35 +317,33 @@ export default function MatchingBoard() {
                   </button>
                 </DialogTrigger>
 
-                <DialogContent className="max-w-sm p-6">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center justify-between gap-3">
-                      <div className="text-base font-semibold">
-                        {selectedProfile?.nickname}
-                      </div>
+                {/* 모달 */}
+                <DialogContent className="w-[92vw] max-w-[420px] rounded-2xl p-5 sm:p-6">
+                  <DialogHeader className="items-center text-center">
+                    <DialogTitle className="text-lg font-semibold text-slate-900">
+                      {selectedProfile?.nickname}
+                    </DialogTitle>
+                    <div className="mt-2 inline-flex items-center gap-2">
                       <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium text-blue-600 border-blue-200 bg-blue-50">
                         {selectedProfile?.mbti?.toUpperCase()}
                       </span>
-                    </DialogTitle>
-                    <DialogDescription className="text-[13px] text-slate-700 whitespace-pre-wrap">
-                      {selectedProfile?.description}
-                    </DialogDescription>
+                    </div>
+                    {selectedProfile?.description ? (
+                      <DialogDescription className="mt-3 text-[13px] text-slate-700 whitespace-pre-wrap">
+                        {selectedProfile.description}
+                      </DialogDescription>
+                    ) : null}
                   </DialogHeader>
 
-                  <DialogFooter className="flex justify-end items-center gap-3">
-                    <button
+                  <DialogFooter className="mt-6 flex justify-center">
+                    <InstaButton
+                      username={extractInsta(selectedProfile?.instaProfile)}
                       onClick={() =>
                         selectedProfile && handleClickInsta(selectedProfile)
                       }
-                      className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-[13px] font-medium text-slate-800 hover:bg-slate-50"
-                    >
-                      <InstagramLogoIcon width={18} height={18} />
-                      {extractInsta(selectedProfile?.instaProfile) ? (
-                        <>@{extractInsta(selectedProfile?.instaProfile)}</>
-                      ) : (
-                        <>...</>
-                      )}
-                    </button>
+                      disabled={!extractInsta(selectedProfile?.instaProfile)}
+                      className="mx-auto"
+                    />
                   </DialogFooter>
                 </DialogContent>
               </Dialog>

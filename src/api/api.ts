@@ -2,20 +2,12 @@
 import axios from 'axios';
 import type { User, Profile, Match, Stats } from '../types';
 
-/**
- * 배포(PROD): baseURL을 빈 문자열('')로 두면, 브라우저가 현재 Origin으로 보냄.
- *             Vercel rewrites가 /api/** 를 EC2로 프록시하므로 혼합콘텐츠(HTTPS→HTTP) 문제 없음.
- * 로컬(DEV):  .env.local의 VITE_API_BASE_URL이 있으면 사용, 없으면 8080.
- */
-const BASE_URL = import.meta.env.PROD
-  ? '' // e.g. https://cow-campus-connect.vercel.app + /api/...
-  : import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
-
+// Vercel rewrites 사용 → 절대주소 쓰지 말고 상대경로로
 export const http = axios.create({
-  baseURL: BASE_URL,
+  baseURL: '',
   withCredentials: false,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 8000, // 무한 대기 방지
+  timeout: 8000, // 무한로딩 방지용
 });
 
 // ===== USERS =====
@@ -39,7 +31,8 @@ export async function getIsSignedUser(userId: string) {
 }
 
 export async function increaseCheckNum(userId: number) {
-  await http.post<void>(`/api/users/${userId}/checknum/increase`);
+  // 204 No Content 반환 → 에러 아님
+  await http.post(`/api/users/${userId}/checknum/increase`);
 }
 
 export async function checkNumGet(userId: number) {
@@ -64,8 +57,10 @@ export async function signUpProfile(params: {
   return data;
 }
 
+// 컨트롤러에 /api/profiles 와 /api/profiles/page 둘 다 있음.
+// 기존 호출과 맞추려면 /api/profiles?gender&offset&limit 유지
 export async function getAllProfile(params: {
-  studentGender: string; // 'male' | 'female'
+  studentGender?: string;
   offset: number;
   limit: number;
 }) {
@@ -80,7 +75,6 @@ export async function getAllProfile(params: {
 }
 
 // ===== MATCHES =====
-// 백엔드: POST /api/matches  (OK)
 export async function matchingUpdate(params: {
   userId: number;
   targetId: number;
@@ -89,31 +83,39 @@ export async function matchingUpdate(params: {
   return data;
 }
 
-// 백엔드: GET /api/matches/mine?userId=...
 export async function getMyMatches(userId: number) {
+  // 컨트롤러: GET /api/matches/mine?userId=...
   const { data } = await http.get<Match[]>('/api/matches/mine', {
     params: { userId },
   });
   return data;
 }
 
-// 백엔드: GET /api/matches/my/profiles?userId=...
 export async function getMatchesWithProfile(userId: number) {
+  // 컨트롤러: GET /api/matches/my/profiles?userId=...
   const { data } = await http.get<Profile[]>('/api/matches/my/profiles', {
     params: { userId },
   });
   return data;
 }
 
-// ===== STATS / METRICS =====
-// 백엔드: GET /api/metrics/summary
-export async function getGlobalStats() {
+// ===== METRICS / STATS =====
+// 컨트롤러: GET /api/metrics/summary
+export async function getSummaryMetrics() {
   const { data } = await http.get<Stats>('/api/metrics/summary');
   return data;
 }
 
-//  백엔드에 사용자별 통계 엔드포인트가 없으면 임시로 전역 요약을 재사용하거나 주석 처리
-// export async function getUserStats(_userId: number) {
-//   const { data } = await http.get<Stats>('/api/metrics/summary');
-//   return data;
-// }
+// 컨트롤러: GET /api/stats/{userId}
+export async function getUserStats(userId: number) {
+  const { data } = await http.get<Stats>(`/api/stats/${userId}`);
+  return data;
+}
+
+// 컨트롤러: POST /api/stats/{userId}/increment-match
+export async function incrementUserMatch(userId: number) {
+  const { data } = await http.post<Stats>(
+    `/api/stats/${userId}/increment-match`
+  );
+  return data;
+}

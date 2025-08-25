@@ -1,9 +1,5 @@
 // src/pages/matching-board.tsx
-import {
-  ChevronLeftIcon,
-  InstagramLogoIcon,
-  Cross2Icon,
-} from '@radix-ui/react-icons';
+import { ChevronLeftIcon, InstagramLogoIcon } from '@radix-ui/react-icons';
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getAllProfile, matchingUpdate } from '../api/api';
@@ -15,7 +11,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose, // ✨ 닫기 버튼을 직접 배치해서 위치/여백 제어
 } from '../components/ui/dialog';
 import { throttle } from '../lib/utils';
 import { toast } from 'sonner';

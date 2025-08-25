@@ -25,7 +25,7 @@ export async function signUp(params: {
   return data;
 }
 
-export async function getIsSignedUser(userId: number) {
+export async function getIsSignedUser(userId: string) {
   const { data } = await http.get<boolean>(`/api/users/${userId}/exists`);
   return data;
 }
@@ -34,7 +34,6 @@ export async function increaseCheckNum(userId: number) {
   await http.post<void>(`/api/users/${userId}/checknum/increase`);
 }
 
-// ✅ 추가: check_num 조회
 export async function checkNumGet(userId: number) {
   const { data } = await http.get<number>(`/api/users/${userId}/checknum`);
   return data;

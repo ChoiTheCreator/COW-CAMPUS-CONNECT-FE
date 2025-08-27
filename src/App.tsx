@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CowSvg from './assets/cow-logo.svg?react';
 import { getSummaryMetrics } from './api/api';
-
+import { SummaryDto } from './types';
 function App() {
   const navigate = useNavigate();
 
   // 통계 상태
-  const [summary, setSummary] = useState(null);
+  const [summary, setSummary] = useState<SummaryDto | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

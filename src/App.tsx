@@ -49,9 +49,9 @@ function App() {
                          shadow-[0_8px_20px_rgba(15,23,42,0.15)] transition-all
                          hover:shadow-[0_12px_24px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 active:translate-y-0
                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900"
-              aria-label="관리자 회원가입"
+              aria-label="회원가입"
             >
-              관리자 회원가입 / 설정
+              회원가입
             </button>
 
             <button

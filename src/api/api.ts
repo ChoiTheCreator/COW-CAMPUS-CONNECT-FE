@@ -2,7 +2,6 @@
 import axios from 'axios';
 import type { User, Profile, Match, Stats } from '../types';
 
-// Vercel rewrites 사용 → 절대주소 쓰지 말고 상대경로로
 export const http = axios.create({
   baseURL: '',
   withCredentials: false,

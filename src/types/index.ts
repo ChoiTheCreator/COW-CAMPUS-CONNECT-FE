@@ -32,3 +32,9 @@ export interface Stats {
   id: number;
   match_count: number;
 }
+
+//Metrics 관련
+export type SummaryDto = {
+  totalUsers: number; // 기본 기대
+  total_users?: number; // 혹시 snake_case면 여기로 들어옴
+};

@@ -1,63 +1,26 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CowSvg from './assets/cow-logo.svg?react';
-import { getSummaryMetrics } from './api/api'; // 백엔드 통계 API
+import { getSummaryMetrics } from './api/api';
 import type { Stats } from './types'; // 프로젝트 타입 정의
 
 function App() {
   const navigate = useNavigate();
 
   // 통계 상태
-  const [summary, setSummary] = useState<Stats | null>(null);
+  const [summary, setSummary] = useState<SummaryDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-
-  // 응답 객체에서 "가능한 키들" 중 첫 번째 숫자값을 안전하게 뽑아오는 헬퍼
-  const n = (keys: string[], def = 0) => {
-    const src: any = summary;
-    for (const k of keys) {
-      const v = src?.[k];
-      if (typeof v === 'number' && Number.isFinite(v)) return v;
-    }
-    return def;
-  };
-
-  // 자주 쓰는 통계 값들(키 후보를 넉넉히 포함)
-  const totalUsers = n([
-    'totalUsers',
-    'usersCount',
-    'registeredUsers',
-    'total_users',
-  ]);
-  const totalProfiles = n([
-    'totalProfiles',
-    'profilesCount',
-    'registeredProfiles',
-    'total_profiles',
-  ]);
-  const totalMatches = n([
-    'totalMatches',
-    'matchesCount',
-    'matchedCount',
-    'total_matches',
-  ]);
-  const todayUsers = n([
-    'todayUsers',
-    'todayRegistered',
-    'todaySignups',
-    'signedToday',
-  ]);
-  const maleUsers = n(['maleUsers', 'menCount', 'male_count']);
-  const femaleUsers = n(['femaleUsers', 'womenCount', 'female_count']);
 
   useEffect(() => {
     (async () => {
       try {
         const s = await getSummaryMetrics();
-        console.log(s.match_count);
+        console.log(s);
         setSummary(s);
-      } catch (e) {
-        setErr('통계를 불러오지 못했어요.');
+      } catch (err) {
+        console.log(err);
+        setErr(err);
       } finally {
         setLoading(false);
       }
@@ -82,7 +45,7 @@ function App() {
           <div className="fade-up fade-up-delay-1 flex items-center gap-3 mb-4">
             <CowSvg className="h-9 w-9 shrink-0 transition-transform will-change-transform hover:-translate-y-0.5" />
             <div className="text-sm font-medium text-slate-500">
-              COW — 명지대 개발 동아리
+              COW — 명지대학교 IT 서비스 개발 중앙동아리
             </div>
           </div>
 
@@ -106,44 +69,16 @@ function App() {
             2025.08.24 ~ 2025.09.06
           </div>
 
-          {/* 통계 뱃지 묶음 */}
+          {/* 통계 뱃지 */}
           <div className="fade-up fade-up-delay-4 mt-4 flex flex-wrap items-center justify-center gap-2">
             {loading ? (
-              <>
-                <div className="h-9 w-40 animate-pulse rounded-full bg-slate-200/80" />
-                <div className="h-9 w-44 animate-pulse rounded-full bg-slate-200/80" />
-                <div className="h-9 w-44 animate-pulse rounded-full bg-slate-200/80" />
-              </>
+              <div className="h-9 w-40 animate-pulse rounded-full bg-slate-200/80" />
             ) : err ? (
               <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700">
                 {err}
               </div>
             ) : (
-              <>
-                {/* 전체 등록 인원 */}
-                <Badge label="현재 등록" value={totalUsers} />
-
-                {/* 제출 프로필 수(있으면) */}
-                {totalProfiles > 0 && (
-                  <Badge label="제출된 프로필" value={totalProfiles} />
-                )}
-
-                {/* 오늘 가입(있으면) */}
-                {todayUsers > 0 && (
-                  <Badge label="오늘 가입" value={todayUsers} />
-                )}
-
-                {/* 성별 분포(있으면) */}
-                {maleUsers > 0 && <Badge label="남" value={maleUsers} muted />}
-                {femaleUsers > 0 && (
-                  <Badge label="여" value={femaleUsers} muted />
-                )}
-
-                {/* 총 매칭 수(있으면) */}
-                {totalMatches > 0 && (
-                  <Badge label="총 매칭" value={totalMatches} />
-                )}
-              </>
+              <Badge label="현재 등록" value={summary?.totalUsers ?? 0} />
             )}
           </div>
 

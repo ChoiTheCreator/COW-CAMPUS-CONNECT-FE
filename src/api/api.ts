@@ -1,6 +1,6 @@
 // src/api/api.ts
 import axios from 'axios';
-import type { User, Profile, Match, Stats } from '../types';
+import type { User, Profile, Match, Stats, SumamryDto } from '../types';
 
 export const http = axios.create({
   baseURL: '',
@@ -99,11 +99,6 @@ export async function getMatchesWithProfile(userId: number) {
 }
 
 // ===== METRICS / STATS =====
-// 컨트롤러: GET /api/metrics/summary
-export async function getSummaryMetrics() {
-  const { data } = await http.get<Stats>('/api/metrics/summary');
-  return data;
-}
 
 // 컨트롤러: GET /api/stats/{userId}
 export async function getUserStats(userId: number) {
@@ -116,5 +111,12 @@ export async function incrementUserMatch(userId: number) {
   const { data } = await http.post<Stats>(
     `/api/stats/${userId}/increment-match`
   );
+  return data;
+}
+
+//
+export async function getSummaryMetrics() {
+  const { data } = await http.get<SumamryDto>('/api/metrics/summary');
+  console.log(data);
   return data;
 }

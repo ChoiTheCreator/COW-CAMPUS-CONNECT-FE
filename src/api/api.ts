@@ -1,6 +1,6 @@
 // src/api/api.ts
 import axios from 'axios';
-import type { User, Profile, Match, Stats, SumamryDto } from '../types';
+import type { User, Profile, Match, Stats, SummaryDto } from '../types';
 
 export const http = axios.create({
   baseURL: '',
@@ -116,7 +116,7 @@ export async function incrementUserMatch(userId: number) {
 
 //
 export async function getSummaryMetrics() {
-  const { data } = await http.get<SumamryDto>('/api/metrics/summary');
+  const { data } = await http.get<SummaryDto>('/api/metrics/summary');
   console.log(data);
   return data;
 }

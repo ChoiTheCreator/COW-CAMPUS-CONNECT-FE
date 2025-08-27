@@ -1,14 +1,17 @@
-import path from "path";
-import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
-import svgr from "vite-plugin-svgr";
-import { defineConfig } from "vite";
-
 export default defineConfig({
   plugins: [react(), tailwindcss(), svgr()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080', // 스프링 백엔드 주소
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 });

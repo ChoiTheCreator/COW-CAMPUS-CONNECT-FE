@@ -9,7 +9,6 @@ function App() {
   // 통계 상태
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | unknown>(null);
 
   useEffect(() => {
     (async () => {
@@ -19,7 +18,6 @@ function App() {
         setSummary(s);
       } catch (err) {
         console.log(err);
-        setErr(err);
       } finally {
         setLoading(false);
       }
@@ -72,10 +70,6 @@ function App() {
           <div className="fade-up fade-up-delay-4 mt-4 flex flex-wrap items-center justify-center gap-2">
             {loading ? (
               <div className="h-9 w-40 animate-pulse rounded-full bg-slate-200/80" />
-            ) : err ? (
-              <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700">
-                {err}
-              </div>
             ) : (
               <Badge label="현재 등록" value={summary?.totalUsers ?? 0} />
             )}

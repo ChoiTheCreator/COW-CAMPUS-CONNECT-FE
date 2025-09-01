@@ -1,4 +1,3 @@
-// src/pages/my-page.tsx
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getMatchesWithProfile } from '../api/api';

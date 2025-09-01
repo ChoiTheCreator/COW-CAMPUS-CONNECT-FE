@@ -23,7 +23,7 @@ export default function Onboarding() {
   const onGoApply = () => {
     // 내부 경로가 있다면 navigate('/apply') 로 교체
     window.open(
-      'https://example.com/cow-apply',
+      'https://ddingdong.mju.ac.kr/apply/347',
       '_blank',
       'noopener,noreferrer'
     );

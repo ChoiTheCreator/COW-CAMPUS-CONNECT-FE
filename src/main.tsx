@@ -9,7 +9,7 @@ import Login from './pages/login.tsx';
 import { Toaster } from 'sonner';
 import { SignUpSuccess } from './pages/sign-up-success.tsx';
 import { MyPage } from './pages/my-page.tsx';
-
+import Onboarding from './pages/onboarding/index.tsx';
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
     <Routes>
@@ -20,6 +20,7 @@ createRoot(document.getElementById('root')!).render(
 
       <Route path="/signup/success" element={<SignUpSuccess />} />
       <Route path="/myPage" element={<MyPage />} />
+      <Route path="/how-to" element={<Onboarding />} />
     </Routes>
     <Toaster />
   </BrowserRouter>

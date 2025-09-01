@@ -4,12 +4,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeftIcon, InstagramLogoIcon } from '@radix-ui/react-icons';
 import { toast } from 'sonner';
 
-// 프로젝트 기존 API 시그니처 가정 (이전 대화 기준)
 import { getAllProfile, matchingUpdate } from '../api/api';
 import type { Profile as ProfileProps } from '../types';
 
-// 유틸: 안전한 atob
-const safeAtob = (v?: string | null) => {
+type Gender = 'male' | 'female';
+
+/** 안전한 atob: 잘못된 값이면 빈 문자열 반환 */
+const safeAtob = (v?: string | null): string => {
   if (!v) return '';
   try {
     return atob(v);
@@ -18,7 +19,7 @@ const safeAtob = (v?: string | null) => {
   }
 };
 
-// 유틸: 인스타 유저네임 추출
+/** 인스타 유저네임만 추출 */
 const extractInsta = (raw?: string | null): string => {
   if (!raw) return '';
   const s = String(raw).trim();
@@ -29,7 +30,7 @@ const extractInsta = (raw?: string | null): string => {
   return u;
 };
 
-// 유틸: 간단 throttle
+/** 간단 throttle */
 function throttle<F extends (...args: any[]) => void>(fn: F, wait = 600) {
   let last = 0;
   let timer: any;
@@ -58,27 +59,29 @@ export default function MatchingBoard() {
     [location.search]
   );
 
-  // 쿼리: Base64로 들어옴 (studentId, studentGender)
-  const studentId = useMemo(
-    () => Number(safeAtob(sp.get('studentId')) || 0),
-    [sp]
-  );
-  const studentGender = useMemo(
-    () => safeAtob(sp.get('studentGender')) || '',
-    [sp]
-  );
-  // 보드가 보여줄 대상 성별: 보통 "내 성별 반대" 목록을 보여주므로
-  const targetGender = useMemo(() => {
+  /** 쿼리 파싱 */
+  const studentId = useMemo(() => {
+    const n = Number(safeAtob(sp.get('studentId')) || 0);
+    return Number.isFinite(n) && n > 0 ? n : undefined; // 없으면 undefined
+  }, [sp]);
+
+  const studentGender = useMemo<Gender | undefined>(() => {
+    const g = safeAtob(sp.get('studentGender')) as Gender | '';
+    return g === 'male' || g === 'female' ? g : undefined;
+  }, [sp]);
+
+  /** 보드에 표시할 대상 성별(보통 반대 성별) */
+  const targetGender = useMemo<Gender | undefined>(() => {
     if (studentGender === 'male') return 'female';
     if (studentGender === 'female') return 'male';
-    return ''; // 모르면 전체
+    return undefined; // 전체
   }, [studentGender]);
 
-  // UI 상태
+  /** UI 상태 */
   const [loading, setLoading] = useState(false);
   const [profiles, setProfiles] = useState<ProfileProps[]>([]);
 
-  // 인스타 버튼
+  /** 인스타 버튼 */
   const igGradient =
     'bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#8134af]';
   const openInstagram = useCallback((username?: string | null) => {
@@ -93,12 +96,15 @@ export default function MatchingBoard() {
     window.open(url, '_blank', 'noopener,noreferrer');
   }, []);
 
-  // 목록 불러오기
+  /** 목록 불러오기 (getAllProfile: { studentGender?, offset, limit }) */
   const fetchProfiles = useCallback(async () => {
     setLoading(true);
     try {
-      // getAllProfile의 시그니처가 (gender?: 'male'|'female') 였던 흐름
-      const list = await getAllProfile(targetGender || undefined);
+      const list = await getAllProfile({
+        studentGender: targetGender, // Gender | undefined OK
+        offset: 0,
+        limit: 50,
+      });
       setProfiles(Array.isArray(list) ? list : []);
     } catch (e: any) {
       toast.error('목록을 불러오지 못했습니다.', {
@@ -113,7 +119,7 @@ export default function MatchingBoard() {
     fetchProfiles();
   }, [fetchProfiles]);
 
-  // 매칭 처리
+  /** 매칭 처리 (matchingUpdate: { userId, targetId }) */
   const onPick = useCallback(
     throttle(async (targetUserId: number) => {
       if (!studentId) {
@@ -122,8 +128,8 @@ export default function MatchingBoard() {
       }
       try {
         await matchingUpdate({
-          studentId, // 나(선택자)
-          targetUserId, // 상대(선택 대상)
+          userId: studentId, // 시그니처에 맞춤
+          targetId: targetUserId,
         });
         toast.success('선택 완료!', {
           description: '마이페이지에서 확인할 수 있어요.',
@@ -235,9 +241,12 @@ export default function MatchingBoard() {
         <div className="p-3">
           <button
             onClick={() =>
-              navigate(`/myPage?studentId=${btoa(String(studentId || ''))}`)
+              studentId
+                ? navigate(`/myPage?studentId=${btoa(String(studentId))}`)
+                : toast.error('학생 정보가 없습니다.')
             }
             className="w-full rounded-xl bg-black text-white py-3 font-semibold hover:opacity-90"
+            disabled={!studentId}
           >
             내가 선택한 친구 보기
           </button>

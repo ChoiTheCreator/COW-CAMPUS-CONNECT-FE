@@ -1,39 +1,103 @@
-import { CheckCircledIcon } from "@radix-ui/react-icons";
-import { useLocation, useNavigate } from "react-router-dom";
+import { CheckCircledIcon } from '@radix-ui/react-icons';
+import { useLocation, useNavigate } from 'react-router-dom';
+
 export function SignUpSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
-  const gender = searchParams.get("gender");
-  const nickName = searchParams.get("nickName");
+  const gender = searchParams.get('gender');
+  const nickName = searchParams.get('nickName');
+
+  const genderKo =
+    gender === 'male' ? '남자' : gender === 'female' ? '여자' : '미입력';
 
   return (
-    <div className='h-dvh w-dvw flex flex-col px-4 py-6 font-sans mt-20 '>
-      <div className='flex flex-col w-full items-center justify-center  '>
-        <CheckCircledIcon width={250} height={250} fill='blue' />
-        <div className=' flex flex-col mt-16 gap-1 font-medium'>
-          <span>닉네임: {nickName}</span>
-          <span>성별: {gender === "male" ? "남자" : "여자"}</span>
-          <div className=' mt-2 flex gap-1 flex-col'>
-            <span className='text-pretty'>
-              소개팅 보드는 다른 성별의 인원이 닉네임과 MBTI, 한줄소개가
-              보여집니다.
+    <div className="min-h-dvh w-dvw bg-slate-50 flex items-center justify-center px-4 py-10">
+      {/* 카드 */}
+      <div className="w-full max-w-[520px] rounded-3xl bg-white shadow-[0_20px_60px_rgba(15,23,42,0.12)] border border-slate-100 p-8">
+        {/* 헤더 */}
+        <div className="flex flex-col items-center text-center">
+          {/* 성공 아이콘 */}
+          <div className="relative mb-6">
+            {/* 그라데이션 링 */}
+            <div className="absolute inset-0 -m-1 rounded-full bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#8134af] blur-[18px] opacity-60" />
+            <div className="relative grid place-items-center h-28 w-28 rounded-full bg-slate-900 text-white shadow-lg">
+              <CheckCircledIcon width={56} height={56} />
+            </div>
+          </div>
+
+          <h1 className="text-2xl font-bold tracking-[-0.02em] text-slate-900">
+            가입 완료!
+          </h1>
+          <p className="mt-2 text-slate-500 text-sm leading-relaxed">
+            이제 소개팅 보드에서 다른 친구들의 프로필을 확인하고
+            <br />
+            인스타그램으로 바로 연결해보세요.
+          </p>
+        </div>
+
+        {/* 정보 요약 */}
+        <div className="mt-8 grid gap-3">
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <span className="text-sm text-slate-500">닉네임</span>
+            <span className="text-sm font-semibold text-slate-900">
+              {nickName || '미입력'}
             </span>
-            <span className='text-pretty'>
-              한 사람당 2명의 인스타그램을 확인할 수 있습니다.
-            </span>
-            <span className='text-pretty'>
-              인스타그램으로 연락하시고 연애와 친구 둘 다 잡으세요!
+          </div>
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <span className="text-sm text-slate-500">성별</span>
+            <span className="text-sm font-semibold text-slate-900">
+              {genderKo}
             </span>
           </div>
         </div>
+
+        {/* 가이드 */}
+        <div className="mt-6 rounded-2xl border border-slate-200 p-4">
+          <ul className="space-y-2 text-[13px] leading-6 text-slate-600">
+            <li>• 보드에는 다른 성별의 닉네임, MBTI, 한 줄 소개가 보여요.</li>
+            <li>
+              • 인스타 버튼을 누르면 새 탭에서 바로 프로필을 열 수 있어요.
+            </li>
+            <li>• 매너 있게 대화 시작하기, 잊지 않기! 😊</li>
+          </ul>
+        </div>
+
+        {/* CTA 영역 */}
+        <div className="mt-8 flex flex-col sm:flex-row gap-3">
+          {/* 메인 CTA: 소개팅 시작 */}
+          <button
+            onClick={() => navigate('/')}
+            className={[
+              'flex-1 inline-flex items-center justify-center rounded-2xl px-5 py-3',
+              'text-[15px] font-semibold text-white',
+              'bg-slate-900 hover:bg-slate-800 active:bg-slate-900',
+              'shadow-[0_16px_36px_rgba(15,23,42,0.25)] transition-all',
+              'hover:translate-y-[-1px] active:translate-y-0',
+            ].join(' ')}
+          >
+            친구매칭 시작하기
+          </button>
+
+          {/* 서브 CTA: 보드 소개(선택—라우팅 맞춰 쓰기) */}
+          <button
+            onClick={() => navigate('/how-to')}
+            className={[
+              'sm:w-[46%] inline-flex items-center justify-center rounded-2xl px-5 py-3',
+              'text-[15px] font-semibold',
+              'border border-slate-200 text-slate-700 bg-white',
+              'hover:bg-slate-50 active:bg-white transition-all',
+            ].join(' ')}
+          >
+            보드 사용 방법 보기
+          </button>
+        </div>
+
+        {/* 푸터 */}
+        <div className="mt-6 text-center text-[12px] text-slate-400">
+          안전하고 즐거운 만남을 응원해요 !
+        </div>
       </div>
-      <button
-        className='py-2 px-4 bg-[#0F172A] border text-white rounded-md text-sm mt-5'
-        onClick={() => navigate("/")}
-      >
-        소개팅 시작하기
-      </button>
     </div>
   );
 }

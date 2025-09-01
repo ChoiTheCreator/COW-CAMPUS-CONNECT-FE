@@ -114,9 +114,10 @@ export async function incrementUserMatch(userId: number) {
   return data;
 }
 
-//
+// 대시보드 요약
 export async function getSummaryMetrics() {
-  const { data } = await http.get<SummaryDto>('/api/metrics/summary');
-  console.log(data);
+  // 백엔드 라우트 변경: /api/metrics/summary → /api/dashboard/summary (고친곳)
+  const { data } = await http.get<SummaryDto>('/api/metrics/summary'); // (고친곳)
+  // console.log(data); // 필요 없으면 제거 가능
   return data;
 }

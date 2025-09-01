@@ -56,9 +56,9 @@ function App() {
 
           {/* 서브 문구 */}
           <p className="fade-up fade-up-delay-3 mt-4 text-lg md:text-xl text-slate-700 leading-relaxed">
-            우리와 함께 더 나은 명지를
+            우리와 함께 더 나은 명지를 만들어갈{' '}
             <br className="hidden md:block" />
-            만들어갈 인재를 기다립니다.
+            인재를 기다립니다.
           </p>
 
           {/* 일정 */}

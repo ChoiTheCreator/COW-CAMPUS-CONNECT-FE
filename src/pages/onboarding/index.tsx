@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { buildCarryQuery, toKoGender } from './utils';
 import HeaderHero from './HeaderHero';
@@ -28,6 +28,10 @@ export default function Onboarding() {
       'noopener,noreferrer'
     );
   };
+
+  useEffect(() => {
+    console.log(carry);
+  }, []);
 
   return (
     <div className="min-h-dvh w-dvw bg-slate-50 flex items-center justify-center px-4 py-10">

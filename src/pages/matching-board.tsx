@@ -1,82 +1,146 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+// src/pages/matching-board.tsx
+import { useEffect, useMemo, useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getMatchesWithProfile } from '../api/api';
-import type { Profile as ProfileProps } from '../types';
 import { ChevronLeftIcon, InstagramLogoIcon } from '@radix-ui/react-icons';
-import { toast } from 'sonner'; // (수정) 피드백 토스트
+import { toast } from 'sonner';
 
-export function MyPage() {
+// 프로젝트 기존 API 시그니처 가정 (이전 대화 기준)
+import { getAllProfile, matchingUpdate } from '../api/api';
+import type { Profile as ProfileProps } from '../types';
+
+// 유틸: 안전한 atob
+const safeAtob = (v?: string | null) => {
+  if (!v) return '';
+  try {
+    return atob(v);
+  } catch {
+    return '';
+  }
+};
+
+// 유틸: 인스타 유저네임 추출
+const extractInsta = (raw?: string | null): string => {
+  if (!raw) return '';
+  const s = String(raw).trim();
+  if (!s) return '';
+  let u = s.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '');
+  u = u.replace(/^@+/, '').replace(/^\/+/, '');
+  u = u.split(/[\/?#]/)[0];
+  return u;
+};
+
+// 유틸: 간단 throttle
+function throttle<F extends (...args: any[]) => void>(fn: F, wait = 600) {
+  let last = 0;
+  let timer: any;
+  return (...args: Parameters<F>) => {
+    const now = Date.now();
+    const remaining = wait - (now - last);
+    if (remaining <= 0) {
+      clearTimeout(timer);
+      last = now;
+      fn(...args);
+    } else {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        last = Date.now();
+        fn(...args);
+      }, remaining);
+    }
+  };
+}
+
+export default function MatchingBoard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const encryptedQuery = searchParams.get('studentId');
-
-  const [studentId, setStudentId] = useState<number>();
-  const [data, setData] = useState<ProfileProps[]>([]);
-
-  // (추가) 안전한 base64 decode
-  const safeAtob = useCallback((v: string) => {
-    try {
-      return atob(v);
-    } catch {
-      return '';
-    }
-  }, []);
-
-  // (추가) 인스타 유저네임 추출기
-  const extractInsta = useCallback((raw?: string | null): string => {
-    if (!raw) return '';
-    const s = String(raw).trim();
-    if (!s) return '';
-    let u = s.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '');
-    u = u.replace(/^@+/, '').replace(/^\/+/, '');
-    u = u.split(/[\/?#]/)[0];
-    return u;
-  }, []);
-
-  // (추가) 인스타 공식스러운 그라데이션
-  const igGradient = useMemo(
-    () => 'bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#8134af]',
-    []
+  const sp = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
   );
 
-  // (추가) 인스타 새창 열기
-  const openInstagram = useCallback(
-    (username?: string | null) => {
-      const user = extractInsta(username);
-      if (!user) {
-        toast('인스타 계정이 없어요', {
-          description: '프로필에 등록된 인스타그램 계정을 찾지 못했어요.',
-        });
+  // 쿼리: Base64로 들어옴 (studentId, studentGender)
+  const studentId = useMemo(
+    () => Number(safeAtob(sp.get('studentId')) || 0),
+    [sp]
+  );
+  const studentGender = useMemo(
+    () => safeAtob(sp.get('studentGender')) || '',
+    [sp]
+  );
+  // 보드가 보여줄 대상 성별: 보통 "내 성별 반대" 목록을 보여주므로
+  const targetGender = useMemo(() => {
+    if (studentGender === 'male') return 'female';
+    if (studentGender === 'female') return 'male';
+    return ''; // 모르면 전체
+  }, [studentGender]);
+
+  // UI 상태
+  const [loading, setLoading] = useState(false);
+  const [profiles, setProfiles] = useState<ProfileProps[]>([]);
+
+  // 인스타 버튼
+  const igGradient =
+    'bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#8134af]';
+  const openInstagram = useCallback((username?: string | null) => {
+    const user = extractInsta(username);
+    if (!user) {
+      toast('인스타 계정이 없어요', {
+        description: '프로필에 등록된 인스타그램 계정을 찾지 못했어요.',
+      });
+      return;
+    }
+    const url = `https://www.instagram.com/${user}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, []);
+
+  // 목록 불러오기
+  const fetchProfiles = useCallback(async () => {
+    setLoading(true);
+    try {
+      // getAllProfile의 시그니처가 (gender?: 'male'|'female') 였던 흐름
+      const list = await getAllProfile(targetGender || undefined);
+      setProfiles(Array.isArray(list) ? list : []);
+    } catch (e: any) {
+      toast.error('목록을 불러오지 못했습니다.', {
+        description: e?.message || String(e),
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [targetGender]);
+
+  useEffect(() => {
+    fetchProfiles();
+  }, [fetchProfiles]);
+
+  // 매칭 처리
+  const onPick = useCallback(
+    throttle(async (targetUserId: number) => {
+      if (!studentId) {
+        toast.error('학생 정보가 없습니다.');
         return;
       }
-      const url = `https://www.instagram.com/${user}`; // ← (수정) 백틱 필수
-      window.open(url, '_blank', 'noopener,noreferrer');
-    },
-    [extractInsta]
+      try {
+        await matchingUpdate({
+          studentId, // 나(선택자)
+          targetUserId, // 상대(선택 대상)
+        });
+        toast.success('선택 완료!', {
+          description: '마이페이지에서 확인할 수 있어요.',
+        });
+      } catch (e: any) {
+        toast.error('선택에 실패했어요.', {
+          description: e?.message || String(e),
+        });
+      }
+    }, 800),
+    [studentId]
   );
 
-  // studentId 복호화
-  useEffect(() => {
-    if (encryptedQuery) {
-      const decoded = safeAtob(encryptedQuery);
-      if (decoded) setStudentId(Number(decoded));
-    }
-  }, [encryptedQuery, safeAtob]);
-
-  // 내 매칭 목록 불러오기
-  useEffect(() => {
-    async function fetchData() {
-      if (!studentId) return;
-      const tempData = await getMatchesWithProfile(studentId);
-      setData(tempData ?? []);
-    }
-    fetchData();
-  }, [studentId]);
-
   return (
-    <div className="flex flex-col w-dvw">
-      <header className="flex flex-row w-full items-center justify-between py-4 px-4 shadow-md">
+    <div className="flex flex-col w-dvw min-h-dvh">
+      {/* 헤더 */}
+      <header className="flex flex-row w-full items-center justify-between py-4 px-4 shadow-md bg-white sticky top-0">
         <button
           aria-label="뒤로 가기"
           onClick={() => navigate('/')}
@@ -84,70 +148,101 @@ export function MyPage() {
         >
           <ChevronLeftIcon width={24} height={24} />
         </button>
-        <div className="text-xl font-semibold flex flex-col items-center justify-center">
-          내가 선택한 친구
+        <div className="text-lg sm:text-xl font-semibold">소개팅 보드</div>
+        <div className="text-xs text-slate-500 w-28 text-right truncate">
+          {studentId ? `ID: ${studentId}` : ''}
         </div>
-        <div className="w-6" />
       </header>
 
-      <div>
-        {data.map((value) => {
-          const ig = extractInsta(
-            // (수정) 백엔드 케이스 모두 방어
-            (value as any).instaProfile ?? (value as any).insta_profile
-          );
+      {/* 서브헤더 */}
+      <div className="px-4 py-3 text-sm text-slate-600">
+        {targetGender
+          ? `현재 ${
+              targetGender === 'female' ? '여학생' : '남학생'
+            } 리스트를 보고 있어요.`
+          : '전체 리스트를 보고 있어요.'}
+      </div>
 
-          return (
-            <div
-              key={(value as any).user_id ?? (value as any).userId} // (수정) key 안전화
-              className="flex flex-col w-full py-3 border border-[#CBD5E1]"
-            >
-              <div className="grid grid-cols-2 px-4 pb-2">
-                <div className="font-semibold text-base">{value.nickname}</div>
-                <div className="font-semibold text-base text-right">
-                  {(value.mbti ?? '').toUpperCase()}
-                </div>
-                <div className="font-medium text-sm text-[#64748B] pt-2 col-span-2">
-                  {value.description}
-                </div>
-              </div>
+      {/* 목록 */}
+      <div className="flex-1">
+        {loading && (
+          <div className="px-4 py-8 text-slate-500 text-sm">불러오는 중…</div>
+        )}
 
-              {/* (추가) 인스타 버튼 – 클릭 시 새창 + 보안 옵션 */}
-              <div className="text-black flex flex-row px-4 pt-3">
-                <button
-                  type="button"
-                  className={[
-                    'inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold text-white',
-                    igGradient, // 그라데이션 적용
-                    'shadow-[0_10px_24px_rgba(0,0,0,0.15)]',
-                    'transition-all hover:translate-y-[-1px] active:translate-y-0',
-                    'disabled:opacity-60 disabled:cursor-not-allowed',
-                  ].join(' ')}
-                  onClick={() => openInstagram(ig)}
-                  disabled={!ig}
-                  aria-label="인스타그램 프로필 열기"
-                  title={ig ? `@${ig}` : '인스타그램 계정 없음'}
-                >
-                  <span
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-white/20 backdrop-blur-sm"
-                    aria-hidden
-                  >
-                    <InstagramLogoIcon height={14} width={14} />
-                  </span>
-                  <span className="truncate">@{ig || 'unavailable'}</span>
-                </button>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* 빈 상태 */}
-        {data.length === 0 && (
-          <div className="p-6 text-sm text-slate-500">
-            아직 선택/조회한 프로필이 없습니다.
+        {!loading && profiles.length === 0 && (
+          <div className="px-4 py-8 text-slate-500 text-sm">
+            표시할 프로필이 없습니다.
           </div>
         )}
+
+        {!loading &&
+          profiles.map((p: any) => {
+            const ig = extractInsta(p.instaProfile ?? p.insta_profile);
+            const key = p.user_id ?? p.userId ?? p.id;
+
+            return (
+              <div
+                key={key}
+                className="mx-4 my-3 rounded-xl border border-slate-200 p-4 shadow-sm bg-white"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-base">{p.nickname}</div>
+                    <div className="text-sm text-slate-500 mt-0.5">
+                      {(p.mbti ?? '').toUpperCase()}
+                    </div>
+                    <div className="text-sm text-slate-700 mt-2 whitespace-pre-wrap break-words">
+                      {p.description}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 shrink-0">
+                    {/* 인스타 */}
+                    <button
+                      type="button"
+                      onClick={() => openInstagram(ig)}
+                      disabled={!ig}
+                      className={[
+                        'inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-xs font-semibold text-white',
+                        igGradient,
+                        'shadow-[0_10px_24px_rgba(0,0,0,0.15)]',
+                        'transition-all hover:translate-y-[-1px] active:translate-y-0',
+                        'disabled:opacity-60 disabled:cursor-not-allowed',
+                      ].join(' ')}
+                      title={ig ? `@${ig}` : '인스타그램 계정 없음'}
+                    >
+                      <InstagramLogoIcon height={14} width={14} />
+                      <span className="truncate">@{ig || 'unavailable'}</span>
+                    </button>
+
+                    {/* 선택 버튼 */}
+                    <button
+                      type="button"
+                      onClick={() => onPick(p.user_id ?? p.userId ?? p.id)}
+                      className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold hover:bg-slate-50 active:bg-slate-100"
+                    >
+                      선택하기
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
       </div>
+
+      {/* 하단 내역 바로가기 */}
+      <footer className="sticky bottom-0 bg-white border-t border-slate-200">
+        <div className="p-3">
+          <button
+            onClick={() =>
+              navigate(`/myPage?studentId=${btoa(String(studentId || ''))}`)
+            }
+            className="w-full rounded-xl bg-black text-white py-3 font-semibold hover:opacity-90"
+          >
+            내가 선택한 친구 보기
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -39,11 +39,7 @@ export default function Onboarding() {
         {/* 헤더 카드 */}
         <div className="relative overflow-hidden rounded-3xl bg-white border border-slate-100 shadow-[0_20px_60px_rgba(15,23,42,0.10)]">
           <HeaderHero nickName={nickName} genderKo={genderKo} />
-          <ActionGrid
-            onGoBoard={onGoBoard}
-            onGoMine={onGoMine}
-            onGoApply={onGoApply}
-          />
+          <ActionGrid onGoApply={onGoApply} />
         </div>
 
         <GuideCards />

@@ -78,6 +78,18 @@ export function SignUpSuccess() {
           >
             친구매칭 시작하기
           </button>
+          <button
+            onClick={() => navigate('/roulette')}
+            className={[
+              'flex-1 inline-flex items-center justify-center rounded-2xl px-5 py-3',
+              'text-[15px] font-semibold text-white',
+              'bg-gradient-to-r from-violet-500 to-fuchsia-600',
+              'shadow-[0_16px_36px_rgba(139,92,246,0.35)] transition-all',
+              'hover:translate-y-[-1px] active:translate-y-0',
+            ].join(' ')}
+          >
+            룰렛 돌리기!
+          </button>
 
           {/* 서브 CTA: 보드 소개(선택—라우팅 맞춰 쓰기) */}
           <button
@@ -95,7 +107,8 @@ export function SignUpSuccess() {
 
         {/* 푸터 */}
         <div className="mt-6 text-center text-[12px] text-slate-400">
-          안전하고 즐거운 만남을 응원해요 !
+          안전하고 즐거운 만남을 응원해요 !<div></div>
+          가입하신 분들에 한하여, 랜덤추첨으로 선물을 증정합니다!
         </div>
       </div>
     </div>

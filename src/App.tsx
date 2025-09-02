@@ -155,6 +155,18 @@ function App() {
           <p className="fade-up fade-up-delay-5 mt-6 text-center text-sm text-slate-500">
             프로그램 및 일정은 상황에 따라 일부 변경될 수 있습니다.
           </p>
+
+          <p className="mt-5 text-center text-xs text-slate-400">
+            Developed & Designed By :{' '}
+            <a
+              href="https://github.com/ChoiTheCreator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-slate-600 transition-colors"
+            >
+              Choi Wonbin
+            </a>
+          </p>
         </div>
       </main>
     </div>

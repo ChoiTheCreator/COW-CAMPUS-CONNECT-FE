@@ -115,12 +115,7 @@ export default function SignUp() {
             label="학번"
             type="text"
             // ⬇️ 모바일 숫자 키패드 유도 + 자동완성/대문자 방지
-            inputMode="numeric"
-            pattern="\d*"
-            autoComplete="off"
-            autoCapitalize="none"
-            enterKeyHint="next"
-            maxLength={8}
+
             value={form.studentId}
             onChange={onChange}
             error={errors.studentId}
@@ -131,9 +126,6 @@ export default function SignUp() {
             name="name"
             label="이름"
             type="text"
-            autoComplete="name"
-            autoCapitalize="none"
-            enterKeyHint="next"
             value={form.name}
             onChange={onChange}
             error={errors.name}

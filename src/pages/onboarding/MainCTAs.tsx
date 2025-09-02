@@ -2,10 +2,9 @@ import { ChevronRightIcon } from '@radix-ui/react-icons';
 
 type Props = {
   onGoBoard: () => void;
-  onGoMine: () => void;
 };
 
-export default function MainCTAs({ onGoBoard, onGoMine }: Props) {
+export default function MainCTAs({ onGoBoard }: Props) {
   return (
     <div className="mt-6 flex flex-col sm:flex-row gap-3">
       <button
@@ -20,18 +19,6 @@ export default function MainCTAs({ onGoBoard, onGoMine }: Props) {
       >
         지금 바로 카드 보러가기
         <ChevronRightIcon className="ml-1" />
-      </button>
-
-      <button
-        onClick={onGoMine}
-        className={[
-          'sm:w-[46%] inline-flex items-center justify-center rounded-2xl px-5 py-3',
-          'text-[15px] font-semibold',
-          'border border-slate-200 text-slate-700 bg-white',
-          'hover:bg-slate-50 active:bg-white transition-all',
-        ].join(' ')}
-      >
-        내가 뽑은 사람 확인하기
       </button>
     </div>
   );

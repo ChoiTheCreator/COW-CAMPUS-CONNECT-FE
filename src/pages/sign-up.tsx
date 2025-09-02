@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, KeyboardEvent } from 'react';
+import { useState, ChangeEvent, KeyboardEvent, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getIsSignedUser } from '../api/api';
 import Input from '../components/input';
@@ -16,6 +16,12 @@ export default function SignUp() {
   const [errors, setErrors] = useState({ studentId: '', name: '', global: '' });
   const [loading, setLoading] = useState(false);
 
+  // 모바일 가독성용 서브타이틀 (로그인과 톤 맞춤)
+  const subtitle = useMemo(
+    () => '학번·이름·성별을 입력해 가입을 시작하세요.',
+    []
+  );
+
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((p) => ({ ...p, [name]: value }));
@@ -27,36 +33,46 @@ export default function SignUp() {
   };
 
   const validate = () => {
+    const sid = form.studentId.trim();
+    const nm = form.name.trim();
     const next = { studentId: '', name: '', global: '' };
     let ok = true;
-    if (!/^\d{8}$/.test(form.studentId || '')) {
-      next.studentId = form.studentId
+
+    if (!/^\d{8}$/.test(sid)) {
+      next.studentId = sid
         ? '학번은 8자리 숫자여야 합니다.'
         : '학번을 입력해주세요.';
       ok = false;
     }
-    if (!form.name) {
+    if (!nm) {
       next.name = '이름을 입력해주세요.';
       ok = false;
     }
+
     setErrors(next);
     return ok;
   };
 
   const submit = async () => {
+    if (loading) return;
     if (!validate()) return;
+
     setLoading(true);
     try {
-      const isSigned = await getIsSignedUser(form.studentId);
+      const sid = form.studentId.trim();
+      const nm = form.name.trim();
+
+      const isSigned = await getIsSignedUser(sid);
       if (isSigned) {
         setErrors((p) => ({ ...p, studentId: '이미 등록된 학번입니다.' }));
         return;
       }
-      navigate(
-        `/signup/profile?studentId=${
-          form.studentId
-        }&studentName=${encodeURIComponent(form.name)}&gender=${form.gender}`
-      );
+
+      // 다음 단계로 이동 (로그인과 동일한 인코딩 톤)
+      const url = `/signup/profile?studentId=${sid}&studentName=${encodeURIComponent(
+        nm
+      )}&gender=${form.gender}`;
+      navigate(url);
     } catch {
       setErrors((p) => ({
         ...p,
@@ -73,13 +89,15 @@ export default function SignUp() {
 
   return (
     <PageShell>
-      <div onKeyDown={onKeyDown}>
+      {/* 모바일 엔터 제출 대응 */}
+      <div onKeyDown={onKeyDown} className="pb-6 md:pb-8">
         <header className="mb-6">
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
             회원가입
           </h1>
-          <p className="mt-2 text-slate-600">
-            학번과 이름은 공개되지 않습니다. 동아리 박람회 종료 후 개인정보는
+          <p className="mt-2 text-slate-600">{subtitle}</p>
+          <p className="mt-1 text-xs text-slate-500">
+            학번과 이름은 공개되지 않으며, 동아리 박람회 종료 후 안전하게
             파기됩니다.
           </p>
         </header>
@@ -96,6 +114,13 @@ export default function SignUp() {
             name="studentId"
             label="학번"
             type="text"
+            // ⬇️ 모바일 숫자 키패드 유도 + 자동완성/대문자 방지
+            inputMode="numeric"
+            pattern="\d*"
+            autoComplete="off"
+            autoCapitalize="none"
+            enterKeyHint="next"
+            maxLength={8}
             value={form.studentId}
             onChange={onChange}
             error={errors.studentId}
@@ -106,18 +131,23 @@ export default function SignUp() {
             name="name"
             label="이름"
             type="text"
+            autoComplete="name"
+            autoCapitalize="none"
+            enterKeyHint="next"
             value={form.name}
             onChange={onChange}
             error={errors.name}
             placeholder="학우님의 이름을 입력해주세요"
           />
-          <div>
+          <div className="pt-1">
             <RadioSelector selectedGender={form.gender} onChange={onGender} />
           </div>
         </section>
 
+        {/* 모바일 우선: 기본은 단일 열, md↑에서 2열 */}
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
+            type="button"
             className="h-12 w-full rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-medium
                        shadow-[0_6px_16px_rgba(0,0,0,0.06)] transition-all
                        hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(0,0,0,0.08)]
@@ -128,6 +158,7 @@ export default function SignUp() {
             뒤로가기
           </button>
           <button
+            type="button"
             className="h-12 w-full rounded-xl bg-slate-900 text-white text-sm font-semibold
                        shadow-[0_10px_24px_rgba(15,23,42,0.15)] transition-all
                        hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(15,23,42,0.18)]
@@ -135,6 +166,7 @@ export default function SignUp() {
                        disabled:opacity-60 disabled:cursor-not-allowed"
             onClick={submit}
             disabled={loading}
+            aria-busy={loading}
           >
             {loading ? '처리 중...' : '다음으로'}
           </button>

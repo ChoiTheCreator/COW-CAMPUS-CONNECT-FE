@@ -124,6 +124,16 @@ function App() {
             >
               COW 지원하기
             </button>
+            <button
+              onClick={() => navigate('/roulette')}
+              className="w-72 md:w-80 h-14 rounded-2xl font-bold text-lg md:text-xl
+             bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white
+             shadow-[0_10px_24px_rgba(139,92,246,0.35)] transition-all
+             hover:shadow-[0_14px_28px_rgba(139,92,246,0.45)] hover:-translate-y-0.5 active:translate-y-0
+             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-violet-600"
+            >
+              룰렛 돌리기!
+            </button>
 
             <button
               onClick={() =>

@@ -11,6 +11,7 @@ import { SignUpSuccess } from './pages/sign-up-success.tsx';
 import Onboarding from './pages/onboarding/index.tsx';
 import MatchingBoard from './pages/matching-board.tsx';
 import { MyPage } from './pages/my-page.tsx';
+import RoulettePage from './pages/roullet/index.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
@@ -22,6 +23,7 @@ createRoot(document.getElementById('root')!).render(
       <Route path="/signup/success" element={<SignUpSuccess />} />
 
       <Route path="/dashboard" element={<MatchingBoard />} />
+      <Route path="/roulette" element={<RoulettePage />} />
 
       <Route path="/myPage" element={<MyPage />} />
       <Route path="/how-to" element={<Onboarding />} />

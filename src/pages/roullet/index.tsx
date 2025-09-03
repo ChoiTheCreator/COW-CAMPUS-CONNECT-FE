@@ -28,7 +28,7 @@ const BASE_PRIZES: Prize[] = [
     label: '배달의민족 1만원권',
     weight: 3,
     limited: true,
-    stock: 3,
+    stock: 1,
   },
   { key: 'cgv', label: 'CGV 관람권', weight: 2, limited: true, stock: 1 },
 ];
